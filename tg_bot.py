@@ -4,28 +4,14 @@ import sql_for_bot
 import email_file
 
 my_token = "7983340596:AAFVI86l7oznEBGU32-1koDzQTMq_GdnCJo"
-
 bot = telebot.TeleBot(my_token)
-
 my_id = "1125761716"
-
 question_file = open("вопросы.txt", "r", encoding="UTF-8")
-
 blocks = question_file.read().split("\n\n")
-
 questions = []
 answers = []
-
 admin_pass = "23gp48A"
-admin_panel = False
-
-
-messages = ["Назад", "Получить статистику(почта)", "Получить статистику(в чате)"]
-# for block in blocks:
-#     lines = block.split('\n')
-#     if len(lines) >= 2:
-#         questions.append(lines[0])
-#         answers.append('\n'.join(lines[1:]))
+admin_panels = {}
 
 
 def send_statistic_tg():
@@ -42,21 +28,64 @@ def get_table():
 
 @bot.message_handler(commands=["admin"])
 def ask_admin_password(message):
+    admin_panels[message.from_user.id] = False
+    print("Hola")
     mesg = bot.send_message(message.from_user.id, "Введите пароль:")
     bot.register_next_step_handler(mesg, check_admin_password)
+
+
+def check_admin_password(message):
+    if message.text == admin_pass:
+        bot.delete_message(message.from_user.id, message.message_id)
+        admin_panels[message.from_user.id] = True
+        show_admin_panel(message)
+    else:
+        bot.send_message(message.from_user.id, "Неправильный пароль. Напишите /start если хотите задать вопрос")
+
+
+def show_admin_panel(message):
+    markup = types.ReplyKeyboardMarkup(row_width=2)
+    btn_back = types.KeyboardButton("Назад")
+    btn_email = types.KeyboardButton("Получить статистику(почта)")
+    btn_chat = types.KeyboardButton("Получить статистику(в чате)")
+    markup.add(btn_email, btn_chat, btn_back)
+    bot.send_message(message.from_user.id, "Вам доступна панель администратора", reply_markup=markup)
+
+
+@bot.message_handler(func=lambda message: admin_panels.get(message.from_user.id, False) and message.text == "Получить статистику(в чате)")
+def send_stat_in_chat(message):
+    stat = sql_for_bot.get_statistics()
+    bot.send_message(message.from_user.id, stat)
+
+
+@bot.message_handler(func=lambda message: admin_panels.get(message.from_user.id, False) and message.text == "Получить статистику(почта)")
+def send_stat_by_email(message):
+    email_file.email_sending(sql_for_bot.get_statistics())
+    bot.send_message(message.from_user.id, "Статистика отправлена на почту")
+
+
+@bot.message_handler(func=lambda message: admin_panels.get(message.from_user.id, False) and message.text == "Назад")
+def exit_admin_panel(message):
+    admin_panels[message.from_user.id] = False
+    mesg = bot.send_message(message.from_user.id, "Админ-панель закрыта", reply_markup=types.ReplyKeyboardRemove())
+    bot.register_next_step_handler(mesg, reply_to_start)
 
 
 @bot.message_handler(commands=["start"])
 def reply_to_start(message):
     mesg = bot.send_message(message.from_user.id, "Я бот отвечающий на часто задаваемые вопросы. Напишите свой вопрос и я отвечу")
     bot.register_next_step_handler(mesg, reply_to_user)
+    admin_panels[message.from_user.id] = False
+
+# admin_panels.get(message.from_user.id) or
 
 
 @bot.message_handler(content_types=['text'])
 def reply_to_user(message):
-    if message.text.startswith("/"):
-        return
-    if admin_panel:
+    if message.text == "/admin":
+        print("Hello")
+        mesg = bot.send_message(message.from_user.id, "Введите пароль:")
+        bot.register_next_step_handler(mesg, check_admin_password)
         return
     qs_number = 0
     times = sql_for_bot.get_times()
@@ -74,50 +103,10 @@ def reply_to_user(message):
                 break
     if not is_replied:
         bot.send_message(message.from_user.id, "Обратитесь к менеджеру")
-        # send_statistic_tg()
-        # email_file.email_sending(sql_for_bot.get_statistics())
+
+bot.infinity_polling()
 
 
-
-
-
-def check_admin_password(message):
-    global admin_panel
-    if message.text == admin_pass:
-        admin_panel = True
-        show_admin_panel(message)
-    else:
-        admin_panel = False
-        bot.send_message(message.from_user.id, "Неправильный пароль. Напишите /start если хотите задать вопрос")
-
-
-def show_admin_panel(message):
-    markup = types.ReplyKeyboardMarkup(row_width=2)
-    btn_back = types.KeyboardButton("Назад")
-    btn_email = types.KeyboardButton("Получить статистику(почта)")
-    btn_chat = types.KeyboardButton("Получить статистику(в чате)")
-    markup.add(btn_email, btn_chat, btn_back)
-    bot.send_message(message.from_user.id, "Вам доступна панель администратора", reply_markup=markup)
-
-
-@bot.message_handler(func=lambda message: admin_panel and message.text == "Получить статистику(в чате)")
-def send_stat_in_chat(message):
-    stat = sql_for_bot.get_statistics()
-    bot.send_message(message.from_user.id, stat)
-
-
-@bot.message_handler(func=lambda message: admin_panel and message.text == "Получить статистику(почта)")
-def send_stat_by_email(message):
-    email_file.email_sending(sql_for_bot.get_statistics())
-    bot.send_message(message.from_user.id, "Статистика отправлена на почту")
-
-
-@bot.message_handler(func=lambda message: admin_panel and message.text == "Назад")
-def exit_admin_panel(message):
-    global admin_panel
-    admin_panel = False
-    mesg = bot.send_message(message.from_user.id, "Админ-панель закрыта", reply_markup=types.ReplyKeyboardRemove())
-    bot.register_next_step_handler(mesg, reply_to_start)
 # @bot.message_handler(commands=["admin"])
 # def admin_panel(message):
 #     markup = types.ReplyKeyboardMarkup(row_width=2)
@@ -149,5 +138,5 @@ def exit_admin_panel(message):
 # for j in range(len(questions)):
 #     sql_for_bot.add_sql(questions[j], answers[j])
 
-bot.infinity_polling()
+
 # email_file.email_every_monday()
