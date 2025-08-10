@@ -5,7 +5,7 @@ import sqlalchemy as sa
 
 Base = declarative_base()
 
-pg_engine = create_engine("postgresql://kyrs:Bobr16481@localhost/db")
+pg_engine = create_engine("postgresql://user:password@localhost/databasename")
 
 Session = sessionmaker(bind=pg_engine)
 class QuestionAndAnswer(Base):
@@ -81,5 +81,6 @@ def get_statistics():
         table_str += f"{record.id} | {record.question} | {record.times}\n"
     session.close()
     return table_str
+
 
 
