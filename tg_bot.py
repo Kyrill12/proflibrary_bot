@@ -3,9 +3,9 @@ from telebot import types
 import sql_for_bot
 import email_file
 
-my_token = "7983340596:AAFVI86l7oznEBGU32-1koDzQTMq_GdnCJo"
+my_token = "bot_token"
 bot = telebot.TeleBot(my_token)
-my_id = "1125761716"
+my_id = "admin_id"
 question_file = open("вопросы.txt", "r", encoding="UTF-8")
 blocks = question_file.read().split("\n\n")
 questions = []
@@ -140,3 +140,4 @@ bot.infinity_polling()
 
 
 # email_file.email_every_monday()
+
