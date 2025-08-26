@@ -3,7 +3,7 @@ from telebot import types
 import sql_for_bot
 import email_file
 
-my_token = "bot_token"
+my_token = "bot_token" 
 bot = telebot.TeleBot(my_token)
 my_id = "admin_id"
 question_file = open("вопросы.txt", "r", encoding="UTF-8")
@@ -22,14 +22,13 @@ def send_statistic_tg():
 def get_table():
     global questions, answers
     questions, answers = sql_for_bot.get_sql_table()
-    print(questions)
-    print(answers)
+    # print(questions)
+    # print(answers)
 
 
 @bot.message_handler(commands=["admin"])
 def ask_admin_password(message):
     admin_panels[message.from_user.id] = False
-    print("Hola")
     mesg = bot.send_message(message.from_user.id, "Введите пароль:")
     bot.register_next_step_handler(mesg, check_admin_password)
 
@@ -83,7 +82,7 @@ def reply_to_start(message):
 @bot.message_handler(content_types=['text'])
 def reply_to_user(message):
     if message.text == "/admin":
-        print("Hello")
+        # print("Hello")
         mesg = bot.send_message(message.from_user.id, "Введите пароль:")
         bot.register_next_step_handler(mesg, check_admin_password)
         return
@@ -92,18 +91,20 @@ def reply_to_user(message):
     get_table()
     is_replied = False
     for i in range(len(questions)):
-        sp = questions[i-1].split(", ")
+        sp = questions[i].split(", ")
         for j in sp:
-            if j in message.text.lower():
+            if j.lower() in message.text.lower():
                 qs_number = i
                 times[i] += 1
-                bot.send_message(message.from_user.id, answers[i-1])
+                bot.send_message(message.from_user.id, answers[i])
                 is_replied = True
-                sql_for_bot.change_times(questions[i-1])
+                sql_for_bot.change_times(questions[i])
                 break
     if not is_replied:
         bot.send_message(message.from_user.id, "Обратитесь к менеджеру")
 
+
+print("Бот запущен")
 bot.infinity_polling()
 
 
@@ -140,4 +141,3 @@ bot.infinity_polling()
 
 
 # email_file.email_every_monday()
-
